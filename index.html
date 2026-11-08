@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1220" />
+<title>Arena Cars</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0f1220; color: #fff;
+    font: 600 16px/1.25 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; touch-action: none; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .screen { position: fixed; inset: 0; display: none; padding: max(14px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .screen.on { display: flex; }
+  .dim { background: radial-gradient(ellipse at 50% 30%, #2a2f5a 0%, #0f1220 75%); }
+  .col { flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+  h1 { margin: 0; font-size: 38px; letter-spacing: 1px; }
+  h2 { margin: 0; font-size: 24px; }
+  .sub { opacity: .7; font-size: 14px; }
+  button { font: inherit; color: #fff; border: 0; border-radius: 14px; padding: 12px 22px; background: #3b82f6; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+  button:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  button.green { background: #22a559; } button.red { background: #d9453f; } button.gray { background: #475069; } button.gold { background: #e0a21b; color: #2a1c00; }
+  button:disabled { opacity: .45; }
+  input[type=text] { font: inherit; padding: 12px 14px; border-radius: 12px; border: 2px solid #475069; background: #1a1f38; color: #fff; width: 240px; text-align: center; outline: none; }
+  input[type=text]:focus { border-color: #3b82f6; }
+  .topbar { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .chip { background: rgba(20,24,48,.8); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+  .bar { width: 120px; height: 8px; border-radius: 4px; background: #2b3156; overflow: hidden; margin-top: 3px; }
+  .bar > i { display: block; height: 100%; background: #4ade80; }
+  .row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .arena { width: 250px; height: 92px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; gap: 10px; border: 3px solid rgba(255,255,255,.35); text-shadow: 0 2px 4px rgba(0,0,0,.5); }
+  .coin { color: #fbbf24; }
+  .clear { background: transparent; pointer-events: none; }
+  .clear button, .clear .chip, .clear .panel, .clear #gList, .clear #gAct, .clear .tapbtn { pointer-events: auto; }
+  #drag { position: fixed; inset: 0; touch-action: none; display: none; }
+  .corner { position: absolute; display: flex; gap: 10px; align-items: center; }
+  .tl { top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); }
+  .tr { top: max(10px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+  .bl { bottom: max(14px, env(safe-area-inset-bottom)); left: max(14px, env(safe-area-inset-left)); }
+  .br { bottom: max(14px, env(safe-area-inset-bottom)); right: max(14px, env(safe-area-inset-right)); }
+  .tc { top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); }
+  .bc { bottom: max(14px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
+  .big { font-size: 20px; padding: 14px 26px; }
+  .ico { font-size: 22px; padding: 6px 10px; min-width: 44px; }
+  .sm { padding: 7px 12px; font-size: 14px; border-radius: 10px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #2b3156; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .arena { min-width: 150px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 17px; border: 2px solid rgba(255,255,255,.35); text-shadow: 0 2px 4px rgba(0,0,0,.5); padding: 0 12px; }
+  .rar-common { color: #b6bfd6; } .rar-rare { color: #5aa9ff; } .rar-epic { color: #c084fc; } .rar-legendary { color: #fbbf24; }
+  .panel { background: rgba(14,18,40,.88); border-radius: 16px; padding: 12px 14px; backdrop-filter: blur(6px); }
+  .sub { opacity: .7; font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .pl { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #1a1f38; border-radius: 12px; padding: 9px 12px; margin-bottom: 7px; }
+  .pl.dim2 { opacity: .5; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #55607e; } .dot.on { background: #4ade80; }
+  /* гараж */
+  #gName { position: absolute; top: max(64px, calc(env(safe-area-inset-top) + 54px)); left: 0; right: 0; text-align: center; font-size: 22px; text-shadow: 0 2px 8px #000; }
+  #gList { position: absolute; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); display: flex; gap: 10px; overflow-x: auto; padding: 8px 14px; touch-action: pan-x; }
+  .gc { flex: 0 0 112px; background: rgba(20,25,52,.9); border-radius: 14px; padding: 8px; text-align: center; border: 3px solid transparent; }
+  .gc.sel { border-color: #38bdf8; box-shadow: 0 0 14px #38bdf888; } .gc.lock { opacity: .72; }
+  .gc .sw { height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .gc .gn { font-size: 13px; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gc .gp { font-size: 12px; color: #fbbf24; } .gc .gp.cur { color: #4ade80; }
+  #gAct { position: absolute; left: 0; right: 0; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 104px); display: none; justify-content: center; gap: 14px; }
+  #gAct button { font-size: 18px; padding: 12px 24px; }
+  #insp { position: absolute; right: max(14px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%); width: min(260px, 40vw); }
+  #insp .ir { margin-bottom: 9px; } #insp .in { display: flex; justify-content: space-between; font-size: 14px; gap: 8px; } #insp .in span { opacity: .75; }
+  .bar { width: 100%; height: 7px; border-radius: 4px; background: #2b3156; overflow: hidden; margin-top: 3px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg,#38bdf8,#4ade80); }
+  .chip { background: rgba(20,24,48,.8); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+  #settings, #friends, #online, #room { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 64px; overflow-y: auto; touch-action: pan-y; }
+  .set { background: #1a1f38; border-radius: 14px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+  input[type=range] { width: 200px; }
+  input.wide { width: 100%; max-width: 330px; padding: 8px; }
+  #fTabs { display: flex; gap: 8px; } #fTabs button { background: #2b3156; box-shadow: none; padding: 9px 16px; } #fTabs button.on { background: #3b82f6; }
+  #fList { overflow-y: auto; touch-action: pan-y; flex: 1; }
+  #rmCode { font-size: 40px; letter-spacing: 6px; color: #fbbf24; }
+  #chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .chipb { background: rgba(20,24,48,.82); padding: 7px 12px; font-size: 14px; border-radius: 12px; min-width: 100px; box-shadow: none; pointer-events: auto; text-align: left; }
+  .chipb.sel { outline: 2px solid #38bdf8; } .chipb.dead { opacity: .35; }
+  .chipb .tb { height: 5px; border-radius: 3px; background: rgba(0,0,0,.5); margin-top: 4px; overflow: hidden; } .chipb .tb i { display: block; height: 100%; width: 100%; }
+
+  /* HUD */
+  #hud { pointer-events: none; padding: 0; }
+  #hud > * { pointer-events: none; }
+  #zone { position: absolute; top: 0; bottom: 0; width: 55%; pointer-events: auto; touch-action: none; }
+  #hud.L #zone { left: 0; } #hud.R #zone { right: 0; }
+  #hud.spec #zone { width: 100%; }
+  #stickBase { position: absolute; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%; background: rgba(255,255,255,.14); border: 3px solid rgba(255,255,255,.35); display: none; }
+  #stickThumb { position: absolute; width: 58px; height: 58px; left: 36px; top: 36px; border-radius: 50%; background: rgba(255,255,255,.55); }
+  #abil, #jump { position: absolute; border-radius: 50%; pointer-events: auto; display: flex; align-items: center; justify-content: center; touch-action: none; border: 4px solid rgba(255,255,255,.45); background: rgba(0,0,0,.35); }
+  #hud.spec #abil, #hud.spec #jump { display: none; }
+  #jump { bottom: max(22px, env(safe-area-inset-bottom)); width: calc(112px * var(--s,1)); height: calc(112px * var(--s,1)); font-size: calc(34px * var(--s,1)); border: 0;
+    background: conic-gradient(#38bdf8 var(--p,360deg), rgba(255,255,255,.18) 0); }
+  #jump::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: rgba(20,26,56,.92); }
+  #jump span { position: relative; font-size: calc(40px * var(--s,1)); }
+  #jump.rdy { box-shadow: 0 0 18px #38bdf8aa; }
+  #abil { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 128px * var(--s,1)); width: calc(92px * var(--s,1)); height: calc(92px * var(--s,1)); font-size: calc(42px * var(--s,1)); }
+  #abil.has { background: rgba(59,130,246,.72); border-color: #fff; animation: pulse 1s infinite; }
+  #hud.L #jump { right: max(30px, env(safe-area-inset-right)); } #hud.R #jump { left: max(30px, env(safe-area-inset-left)); }
+  #hud.L #abil { right: calc(max(30px, env(safe-area-inset-right)) + 118px * var(--s,1)); bottom: calc(max(22px, env(safe-area-inset-bottom)) + 30px); }
+  #hud.R #abil { left: calc(max(30px, env(safe-area-inset-left)) + 118px * var(--s,1)); bottom: calc(max(22px, env(safe-area-inset-bottom)) + 30px); }
+  @keyframes pulse { 50% { transform: scale(1.07); } }
+  #alive { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: rgba(20,24,48,.7); padding: 6px 16px; border-radius: 14px; font-size: 18px; }
+  #pause { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); width: 48px; height: 48px; padding: 0; pointer-events: auto; background: rgba(20,24,48,.7); box-shadow: none; font-size: 20px; }
+  #big { position: absolute; left: 0; right: 0; top: 22%; text-align: center; font-size: 84px; font-weight: 900; text-shadow: 0 4px 12px rgba(0,0,0,.6); }
+  #spec { position: absolute; left: 0; right: 0; bottom: max(14px, env(safe-area-inset-bottom)); display: none; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  #spec button { pointer-events: auto; }
+  #toast { position: fixed; top: 16%; left: 50%; transform: translateX(-50%); background: rgba(20,24,48,.94); border-radius: 14px; padding: 10px 18px; display: none; z-index: 9; max-width: 90vw; text-align: center; }
+  #tags { position: absolute; inset: 0; overflow: hidden; }
+  .tag { position: absolute; left: 0; top: 0; width: 96px; margin-left: -48px; text-align: center; font-size: 13px; text-shadow: 0 1px 3px #000; will-change: transform; }
+  .tag .tb { height: 7px; border-radius: 4px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.5); overflow: hidden; margin-top: 2px; }
+  .tag .tb i { display: block; height: 100%; }
+  #flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(255,0,0,0) 45%, rgba(255,30,30,.75) 100%); opacity: 0; transition: opacity .35s; }
+  #flash.on { opacity: 1; transition: none; }
+  #hp { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); width: 210px; background: rgba(20,24,48,.72); border-radius: 14px; padding: 6px 12px 9px; }
+  #hpTxt { font-size: 15px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  #hpBar { height: 14px; border-radius: 7px; background: rgba(0,0,0,.5); border: 2px solid rgba(255,255,255,.55); overflow: hidden; }
+  #hpFill { display: block; height: 100%; width: 100%; background: #4ade80; transition: width .15s, background .2s; }
+  #radar { position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 58px); right: max(14px, env(safe-area-inset-right)); width: 130px; height: 130px; opacity: .92; }
+  #result { background: rgba(8,10,24,.78); }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="drag"></div>
+
+<div id="name" class="screen dim col on">
+  <h1>🚗 Arena Cars</h1>
+  <div class="sub">Выбей соперников с арены в лаву!</div>
+  <input id="nameIn" type="text" maxlength="14" placeholder="Твой ник" autocomplete="off" />
+  <button id="nameOk" class="green">Продолжить</button>
+</div>
+
+<!-- ЛОББИ: машина в центре (3D), кнопки по углам -->
+<div id="menu" class="screen clear">
+  <div class="corner tl"><div class="chip"><div class="avatar" id="mIcon"></div><div><b id="mName"></b><div class="bar" style="width:110px"><i id="mXp"></i></div></div><div>Ур.<b id="mLvl"></b></div></div></div>
+  <div class="corner tr"><div class="chip">🪙 <b class="coin" id="mCoins"></b> <b id="mBoxes"></b></div><button id="bSet" class="gray ico">⚙</button></div>
+  <div class="corner tc" style="top:calc(max(10px, env(safe-area-inset-top)) + 60px)"><div class="chip" style="padding:5px 10px;font-size:13px"><span id="musTxt">♪ музыка</span><button id="musNext" class="gray sm" style="box-shadow:none">⏭</button></div></div>
+  <div class="corner bl"><button id="bGarage" class="big">🚘 Гараж</button><button id="bFriends" class="big gray">👥 Друзья</button></div>
+  <div class="corner bc"><button id="aPrev" class="gray ico">◀</button><div class="arena" id="aCard"></div><button id="aNext" class="gray ico">▶</button></div>
+  <div class="corner br"><button id="bOnline" class="big">🌐 Онлайн</button><button id="bPlay" class="big green">▶ Играть</button></div>
+</div>
+
+<!-- ГАРАЖ -->
+<div id="garage" class="screen clear">
+  <div class="corner tl"><button id="gBack" class="gray">← Назад</button></div>
+  <div class="corner tr"><button id="gBox" class="gold sm" style="font-size:15px;padding:10px 14px">🎁</button><div class="chip">🪙 <b class="coin" id="gCoins"></b></div></div>
+  <div id="gName"></div>
+  <div id="gAct"><button id="bInspect" class="tapbtn">🔍 Осмотреть</button><button id="bBuy" class="tapbtn green"></button></div>
+  <div id="gList"></div>
+</div>
+
+<!-- ОСМОТР: окно характеристик справа, машину крутим пальцем -->
+<div id="inspect" class="screen clear">
+  <div class="corner tl"><button id="iBack" class="gray">← Назад</button></div>
+  <div class="panel" id="insp"><div id="iTitle" style="margin-bottom:10px;font-size:19px"></div><div id="iRows"></div><button id="iBuy" style="width:100%;margin-top:8px"></button></div>
+  <div class="corner bc sub" style="text-shadow:0 1px 4px #000;opacity:.9">👆 Проведи пальцем — машина вращается на 360°</div>
+</div>
+
+<div id="settings" class="screen dim">
+  <div class="topbar"><button id="sBack" class="gray">← Назад</button><h2>Настройки</h2><div style="width:100px"></div></div>
+  <div class="set"><span>🔊 Звук</span><input id="sVol" type="range" min="0" max="100" /></div>
+  <div class="set"><span>🎵 Музыка</span><input id="sMus" type="range" min="0" max="100" /></div>
+  <div class="set"><span>🕹 Джойстик</span><div class="row"><button id="sLeft">Слева</button><button id="sRight">Справа</button></div></div>
+  <div class="set"><span>🔘 Размер кнопок</span><input id="sBtn" type="range" min="70" max="140" /></div>
+  <div class="set"><span>✏ Ник</span><input id="sName" type="text" maxlength="14" style="width:180px;padding:8px" /></div>
+  <div class="set"><span>🖼 Значок</span><div class="row" id="sIcons" style="max-width:420px"></div></div>
+  <div class="set"><span>🌐 Сервер</span><div class="row"><input id="sServer" type="text" class="wide" placeholder="arena-cars.onrender.com" autocomplete="off" /><button id="sTest" class="gray sm">Проверить</button></div></div>
+  <div class="row"><button id="sSave" class="green" style="font-size:20px;padding:12px 50px">Сохранить</button></div>
+</div>
+
+<div id="friends" class="screen dim">
+  <div class="topbar"><button id="fBack" class="gray">← Назад</button><h2>Друзья</h2><div style="width:100px"></div></div>
+  <div class="set"><span>Ваш ID: <b class="coin" id="fMyId" style="letter-spacing:1px"></b></span><button id="fCopy" class="gray sm">Копировать</button></div>
+  <div id="fTabs"><button data-t="list" class="on">Друзья</button><button data-t="req">Запросы<span id="fReqBadge"></span></button><button data-t="find">Поиск</button></div>
+  <div id="fSearchBox" class="row" style="display:none;justify-content:flex-start"><input id="fIn" type="text" class="wide" inputmode="numeric" maxlength="14" placeholder="ID игрока (14 цифр)" /><button id="fSearch" class="sm">Найти</button></div>
+  <div id="fList"></div>
+</div>
+
+<div id="online" class="screen dim col">
+  <div class="topbar"><button id="oBack" class="gray">← Назад</button><h2>Онлайн</h2><div style="width:100px"></div></div>
+  <button id="oQuick" class="green big" style="min-width:260px">⚡ Быстрая игра</button>
+  <div class="sub" id="oStatus"></div>
+  <button id="oCreate" class="big" style="min-width:260px">➕ Создать комнату</button>
+  <div class="row"><input id="oCode" type="text" maxlength="5" placeholder="Код комнаты" style="width:160px;text-transform:uppercase" autocomplete="off" /><button id="oJoin">Войти</button></div>
+</div>
+
+<div id="room" class="screen dim col">
+  <div class="sub">Код комнаты (скажи друзьям)</div>
+  <div id="rmCode"></div>
+  <div class="row"><button id="rmPrev" class="gray ico">◀</button><div class="arena" id="rmArena"></div><button id="rmNext" class="gray ico">▶</button></div>
+  <div id="rmPlayers" style="width:min(420px,90vw);text-align:left"></div>
+  <div class="row"><button id="rmStart" class="green big">▶ Начать матч</button><button id="rmFriends" class="gray">👥 Позвать друга</button><button id="rmLeave" class="red">Выйти</button></div>
+  <div id="rmWait" class="sub">Ждём, когда хозяин комнаты начнёт матч…</div>
+</div>
+
+<div id="hud" class="screen L">
+  <div id="zone"><div id="stickBase"><div id="stickThumb"></div></div></div>
+  <div id="tags"></div>
+  <div id="flash"></div>
+  <div id="hp"><div id="hpTxt"></div><div id="hpBar"><i id="hpFill"></i></div></div>
+  <div id="alive"></div>
+  <button id="pause">✕</button>
+  <canvas id="radar" width="260" height="260"></canvas>
+  <div id="abil"></div>
+  <div id="jump"><span>⤴</span></div>
+  <div id="big"></div>
+  <div id="spec">
+    <div id="specTxt" style="font-size:19px;text-shadow:0 2px 6px #000"></div>
+    <div id="chips"></div>
+    <div class="row"><button id="specPrev" class="gray">◀</button><button id="specMode" class="gray">🎬 Авто</button><button id="specNext" class="gray">▶</button><button id="specExit" class="red"></button></div>
+    <div class="sub" style="text-shadow:0 1px 4px #000">Тяни по экрану — крутить камеру, вверх/вниз — приблизить</div>
+  </div>
+</div>
+
+<div id="result" class="screen col">
+  <h1 id="rTitle"></h1>
+  <div id="rInfo" style="font-size:20px;line-height:1.6"></div>
+  <div class="row"><button id="rAgain" class="green" style="font-size:20px">▶ Ещё раз</button><button id="rMenu" class="gray">В меню</button></div>
+</div>
+
+<div id="toast"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

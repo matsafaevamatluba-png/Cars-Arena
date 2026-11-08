@@ -1,0 +1,9 @@
+# Развёртывание сервера мультиплеера на Render (бесплатный тариф): Render → New → Blueprint → выбери этот репозиторий
+services:
+  - type: web
+    name: arena-cars-server
+    runtime: node
+    plan: free
+    buildCommand: echo "сборка не нужна — сервер без зависимостей"
+    startCommand: node server/server.js
+    healthCheckPath: /health
